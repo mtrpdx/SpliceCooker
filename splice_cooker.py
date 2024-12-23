@@ -49,7 +49,8 @@ def find_samples(SPLICE_ROOT: str, IGNORE: list):
                     "insttype": None,
                     "key": None,
                     "bpm": None,
-                    "status": "not_moved"
+                    "status": "not_moved",
+                    "sample_match_failed": False
                 }
                 sample_list.append(file_dict)
 
@@ -66,34 +67,44 @@ def find_samples(SPLICE_ROOT: str, IGNORE: list):
 class SampleTypeMatcher:
     """Class to handle learning sample types from file paths and names.
     """
+
     def __init__(self):
         self.sample_type = None
         self.drum_type = None
         self.inst_type = None
 
     def get_sample_type(self, dir_strings: list, filename_strings: list):
-        default = "Unknown sample type."
+        default = "Unknown"
         self.sample_type = default
         for string in dir_strings:
-            if re.search("one-shots|one_shots|ONE_SHOT", string):
+            if re.search("one|shot|one_shot|one_shots|one-shot|one-shots|808|percussion|fx|samples|synth_sounds|drum_hits}", string.lower()):
                 self.sample_type = "One Shot"
-            elif re.search("Melodic_Loops", string):
+            elif re.search("melodic_Loops|loops", string.lower()):
                 self.sample_type = "Melodic Loop"
-            elif re.search("Drum_Loops|Breaks", string):
-                self.sample_type = "Breaks"
+            elif re.search("percussion_loops|cymbals_loops", string.lower()):
+                self.sample_type = "Percussion Loop"
+            elif re.search("spoken", string.lower()):
+                self.sample_type = "Spoken Loop"
+            elif re.search("drum_loops|breaks|break_loops", string.lower()):
+                self.sample_type = "Break"
 
-        # if "one-shots" in dir_strings:
-        #     self.sample_type = "One Shot"
-        # elif ("loops" or "Loops" in dir_strings) and ("Drum_Loops" not in dir_strings):
-        #     self.sample_type = "Melodic Loops"
-        # elif ("breaks" or "Drum_Loops") in dir_strings:
-        #     self.sample_type = "Breaks"
-        # else:
-        #     self.sample_type = default
+        for string in filename_strings:
+            if self.sample_type == default:
+                if re.search("one_shot|one_shots|one-shot|one-shots|808|percussion|fx|samples|synth_sounds}", string.lower()):
+                    self.sample_type = "One Shot"
+                elif re.search("melodic_Loops|loops", string.lower()):
+                    self.sample_type = "Melodic Loop"
+                elif re.search("percussion_loops|cymbals_loops", string.lower()):
+                    self.sample_type = "Percussion Loop"
+                elif re.search("spoken", string.lower()):
+                    self.sample_type = "Spoken Loop"
+                elif re.search("drum_loops|breaks|break_loops", string.lower()):
+                    self.sample_type = "Break"
+
         return self.sample_type
 
     def get_drum_type(self, dir_strings: list, filename_strings: list):
-        default = "Unknown drum type."
+        default = "Unknown"
         self.drum_type = default
         for string in filename_strings:
             if re.search("kick", string):
@@ -111,12 +122,12 @@ class SampleTypeMatcher:
         return self.drum_type
 
     def get_inst_type(self, dir_strings: list, filename_strings: list):
-        default = "Unknown instrument type."
+        default = "Unknown"
         self.inst_type = default
         for string in filename_strings:
-            if re.search("bass", string.lower()):
+            if re.search("bass|subbass", string.lower()):
                 self.inst_type = "Bass"
-            if re.search("keys", string.lower()):
+            if re.search("keys|piano", string.lower()):
                 self.inst_type = "Keys"
             if re.search("synth", string.lower()):
                 self.inst_type = "Synth"
@@ -130,7 +141,6 @@ class SampleTypeMatcher:
                 self.inst_type = "FX"
             if re.search("vocal", string.lower()):
                 self.inst_type = "Vox"
-
         return self.inst_type
 
     # def case_one_shots(self):
@@ -144,11 +154,11 @@ class SampleTypeMatcher:
 
 
 # @timeit
-def get_sample_meta(SPLICE_ROOT: str, sample_list: list):
+def get_sample_meta(SPLICE_ROOT: str, DEST_DIR: str, sample_list: list):
     sample_types = []
     drum_types = []
     inst_types = []
-    for sample in sample_list[0:20]:
+    for idx, sample in enumerate(sample_list):
         filename = sample['filename']
         origdir_strings = sample['origdir'].partition(SPLICE_ROOT)[2].split('/')[3:]
         filename_strings = sample["filename"].partition(".")[0].split("_")
@@ -157,23 +167,57 @@ def get_sample_meta(SPLICE_ROOT: str, sample_list: list):
         print(f"Filename strings: {filename_strings}")
 
         stm = SampleTypeMatcher()
-        print(f"Sample type: {stm.get_sample_type(origdir_strings, filename_strings)}")
-        print(f"Drum type: {stm.get_drum_type(origdir_strings, filename_strings)}")
-        print(f"Instrument type: {stm.get_inst_type(origdir_strings, filename_strings)}")
+
+        sample_type = stm.get_sample_type(origdir_strings, filename_strings)
+        drum_type = stm.get_drum_type(origdir_strings, filename_strings)
+        inst_type = stm.get_inst_type(origdir_strings, filename_strings)
+
+        if sample_type != "Unknown":
+            print(f"Sample type: {sample_type}")
+            if sample_type=="Break" or sample_type=="Melodic Loop":
+                sample_list[idx]["newdir"] = os.path.join(DEST_DIR, f"{sample_type}/")
+                sample_list[idx]["sampletype"] = sample_type
+
+            elif sample_type == "One Shot":
+                if drum_type != "Unknown":
+                    print(f"Drum type: {drum_type}")
+                    sample_list[idx]["newdir"] = os.path.join(DEST_DIR, f"{sample_type}/{drum_type}s/")
+                    sample_list[idx]["sampletype"] = sample_type
+                    sample_list[idx]["isdrum"] = True
+                    sample_list[idx]["drumtype"] = drum_type
+
+                if inst_type != "Unknown":
+                    print(f"Instrument type: {inst_type}")
+                    sample_list[idx]["newdir"] = os.path.join(DEST_DIR, f"{sample_type}/{inst_type}/")
+                    sample_list[idx]["isinst"] = True
+                    sample_list[idx]["insttype"] = inst_type
+
+                elif (drum_type == "Unknown") and (inst_type == "Unknown"):
+                    sample_list[idx]["sample_match_failed"] = True
+
+            elif (sample_type == "Spoken Loop") or (sample_type == "Percussion Loop"):
+                    sample_list[idx]["newdir"] = os.path.join(DEST_DIR, f"{sample_type}/")
+
+        else:
+            sample_list[idx]["sample_match_failed"] = True
+            raise Exception("Sample match failed.")
+
         print("============")
 
-        # print(result)
+    # print(sample_list[0:20])
 
 
-
-# @timeit
-def main(SPLICE_ROOT: str):
+@timeit
+def main(SPLICE_ROOT: str, DEST_DIR:str):
 
     SPLICE_ROOT = os.path.expanduser(Path(SPLICE_ROOT))
+    DEST_DIR = os.path.expanduser(Path(DEST_DIR))
     IGNORE = [".DS_Store"]
     SAMPLE_TYPES_DEFAULT = [
         "One Shot",
         "Melodic Loop",
+        "Percussion Loop",
+        "Spoken Loop"
         "Break"
     ]
     DRUM_TYPES_DEFAULT = [
@@ -197,7 +241,7 @@ def main(SPLICE_ROOT: str):
     ]
 
     sample_list = find_samples(SPLICE_ROOT, IGNORE)
-    get_sample_meta(SPLICE_ROOT, sample_list)
+    get_sample_meta(SPLICE_ROOT, DEST_DIR, sample_list)
 
     return 0
 
@@ -209,8 +253,8 @@ if __name__ == "__main__":
         description="Reorganizes Splice samples in a way that makes sense.",
     )
     parser.add_argument("splice_root")
-    # parser.add_argument('')
+    parser.add_argument('dest_dir')
 
     args = parser.parse_args()
 
-    main(args.splice_root)
+    main(args.splice_root, args.dest_dir)
