@@ -3,6 +3,7 @@
 import argparse
 import os
 import re
+import typing
 
 from pathlib import Path
 # from collections import Counter
@@ -63,6 +64,9 @@ def find_samples(SPLICE_ROOT: str, IGNORE: list):
 #     switch v:
 #         case "one-shots":
 #             return "One Shot"
+
+class Sample:
+    """Class to facilitate metadata storage for """
 
 class SampleTypeMatcher:
     """Class to handle learning sample types from file paths and names.
