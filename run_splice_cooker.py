@@ -1,14 +1,19 @@
+import pyglet
+from pyglet import shapes
+from tqdm.auto import tqdm
+import yaml
+
 import argparse
 import hashlib
 import os
 import re
 from pathlib import Path
-import yaml
-from tqdm.auto import tqdm
+from math import sin, cos
 
 # from collections import Counter
 from splice_cooker.utils import timeit
 from splice_cooker.user import User
+from splice_cooker.theme import theme
 
 # from hash_utils import _
 
@@ -19,6 +24,9 @@ from splice_cooker.user import User
 #     print(m.hex_digest())
 #     breakpoint()
 #     return 0
+
+
+total_time = 0
 
 
 def parse_arguments():
@@ -314,6 +322,106 @@ def get_sample_meta(splice_root: str, dest_dir: str, sample_list: list):
 @timeit
 def main(user_config_file: str, copy_only: True):
 
+    window = pyglet.window.Window(caption="SpliceCooker")
+
+    batch = pyglet.graphics.Batch()
+
+    # label = pyglet.text.Label(
+    #     "Hello, _",
+    #     font_name="Times New Roman",
+    #     font_size=36,
+    #     x=window.width // 2,
+    #     y=window.height // 2,
+    #     anchor_x="center",
+    #     anchor_y="center",
+    #     batch=batch,
+    # )
+    user_theme = theme["pink"]
+
+    border = shapes.Box(
+        x=0,
+        y=0,
+        width=window.width,
+        height=window.height,
+        thickness=24.0,
+        color=user_theme,
+        batch=batch,
+    )
+
+    # cursor = shapes.Rectangle(
+    #     x=window.width / 2,
+    #     y=window.height / 2,
+    #     width=24.0,
+    #     height=48.0,
+    #     color=(181, 181, 181),
+    #     batch=batch,
+    # )
+
+    # Oscilloscope demo
+    aspect_x = 4.0
+    aspect_y = 3.0
+    rectangles = []
+    n_rectangles = 100  # this determines x pixel count and screen size
+    rectangle_width = 2
+    gap = rectangle_width
+    total_width = (n_rectangles * rectangle_width) + ((n_rectangles - 1) * gap)
+    total_height = total_width / (aspect_x / aspect_y)
+    # left_shift = (40 * n_rectangles) / 2
+    # x = (window.width / 2) - left_shift
+    start_x = (window.width - total_width) / 2  # left edge of screen
+    breakpoint()
+    oscope_border = shapes.Box(
+        x=start_x,
+        y=(window.height / 2) - (total_height / 2),
+        width=total_width,
+        height=total_height,
+        color=user_theme,
+        batch=batch,
+    )
+
+    # Create row of rectangles
+    for i in range(n_rectangles):
+        x = start_x + i * (rectangle_width + gap)
+        y = window.height / 2
+        rect = shapes.Rectangle(
+            x=x,
+            y=y,
+            width=rectangle_width,
+            height=rectangle_width,
+            color=user_theme,
+            batch=batch,
+        )
+        rect.original_x = x
+        rectangles.append(rect)
+
+    def update(dt):
+        global total_time
+        total_time += dt
+
+        # wave settings
+        speed = 14.0
+        amplitude = 50.0
+        freq = 0.04
+        base_y = window.height / 2
+        for rect in rectangles:
+            angle = (rect.original_x * freq) + (total_time * speed)
+            rect.y = base_y + amplitude * sin(angle)
+            # offset += 0.10
+        # cursor.opacity += int(sin(value))
+        # print(cursor.opacity)
+
+    @window.event
+    def on_key_press(symbol, modifiers):
+        print("A key was pressed")
+
+    @window.event
+    def on_draw():
+        window.clear()
+        batch.draw()
+
+    pyglet.clock.schedule_interval(update, 1 / 60)
+    pyglet.app.run()
+
     with open(user_config_file, "r") as stream:
         user = yaml.load(stream, Loader=yaml.Loader)
     breakpoint()
@@ -374,5 +482,5 @@ def main(user_config_file: str, copy_only: True):
 
 if __name__ == "__main__":
     args = parse_arguments()
-    breakpoint()
+    # breakpoint()
     main(*args)
