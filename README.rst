@@ -34,10 +34,17 @@ SpliceCooker
 ============
 
 
-    Add a short description here!
+    SpliceCooker is a sample library tool designed to connect Splice with the act of making music.
 
 
-A longer description of your project goes here...
+ SpliceCooker reorganizes Splice samples in a way that makes sense.
+
+
+Roadmap
+=======
+
+v1: Copies files into logical structure.
+v2: Hashes all files and looks for changes in Splice directory. Can then copy files directly from Splice directory to destination.
 
 
 .. _pyscaffold-notes:

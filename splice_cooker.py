@@ -7,7 +7,8 @@ import yaml
 from tqdm.auto import tqdm
 
 # from collections import Counter
-from utils import timeit
+from splice_cooker.utils import timeit
+from splice_cooker.user import User
 
 # from hash_utils import _
 
@@ -18,28 +19,6 @@ from utils import timeit
 #     print(m.hex_digest())
 #     breakpoint()
 #     return 0
-
-
-class User(yaml.YAMLObject):
-    yaml_tag = "!User"
-
-    def __init__(self, name, config):
-        self.name = name
-        self.config = config
-        # self.splice_root = splice_root
-        # self.dest_dir = dest_dir
-        # self.sample_hierarchy = sample_hierarchy
-
-    def __repr__(self):
-        # return "%s(name=%r, splice_root=%r, dest_dir=%r, sample_hierarchy=%r)" % (
-        return "%s(name=%r, config=%r)" % (
-            self.__class__.__name__,
-            self.name,
-            self.config,
-            # self.splice_root,
-            # self.dest_dir,
-            # self.sample_hierarchy,
-        )
 
 
 def parse_arguments():
