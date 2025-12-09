@@ -11,9 +11,11 @@ from pathlib import Path
 from math import sin, cos
 
 # from collections import Counter
+from splice_cooker.components import OScope
 from splice_cooker.utils import timeit
 from splice_cooker.user import User
 from splice_cooker.theme import theme
+from splice_cooker.file_dialog import FileOpenDialog, FileSaveDialog
 
 # from hash_utils import _
 
@@ -322,7 +324,16 @@ def get_sample_meta(splice_root: str, dest_dir: str, sample_list: list):
 @timeit
 def main(user_config_file: str, copy_only: True):
 
+    with open(user_config_file, "r") as stream:
+        user = yaml.load(stream, Loader=yaml.Loader)
+
+    # breakpoint()
+
     window = pyglet.window.Window(caption="SpliceCooker")
+
+    # oscope = OScope(window)
+
+    # breakpoint()
 
     batch = pyglet.graphics.Batch()
 
@@ -348,6 +359,16 @@ def main(user_config_file: str, copy_only: True):
         batch=batch,
     )
 
+    # open_dialog = FileOpenDialog(
+    #     # initial_dir=user.config["splice_root"],
+    #     filetypes=[("WAV", ".wav"), ("AIFF", ".aiff")],
+    #     multiple=True,
+    # )
+
+    # @open_dialog.event
+    # def on_dialog_open(filenames):
+    #     print("List of seleted filenames:", filenames)
+
     # cursor = shapes.Rectangle(
     #     x=window.width / 2,
     #     y=window.height / 2,
@@ -358,41 +379,53 @@ def main(user_config_file: str, copy_only: True):
     # )
 
     # Oscilloscope demo
-    aspect_x = 4.0
-    aspect_y = 3.0
-    rectangles = []
-    n_rectangles = 100  # this determines x pixel count and screen size
-    rectangle_width = 2
-    gap = rectangle_width
-    total_width = (n_rectangles * rectangle_width) + ((n_rectangles - 1) * gap)
-    total_height = total_width / (aspect_x / aspect_y)
-    # left_shift = (40 * n_rectangles) / 2
-    # x = (window.width / 2) - left_shift
-    start_x = (window.width - total_width) / 2  # left edge of screen
-    breakpoint()
-    oscope_border = shapes.Box(
-        x=start_x,
-        y=(window.height / 2) - (total_height / 2),
-        width=total_width,
-        height=total_height,
-        color=user_theme,
-        batch=batch,
-    )
+    # =================
+    # aspect_x = 4.0
+    # aspect_y = 3.0
+    # rectangles = []
+    # n_rectangles = 100  # this determines x pixel count and screen size
+    # rectangle_width = 2
+    # gap = rectangle_width
+    # total_width = (n_rectangles * rectangle_width) + ((n_rectangles - 1) * gap)
+    # total_height = total_width / (aspect_x / aspect_y)
+    # # left_shift = (40 * n_rectangles) / 2
+    # # x = (window.width / 2) - left_shift
+    # start_x = (window.width - total_width) / 2  # left edge of screen
+    # # breakpoint()
+    # oscope_border = shapes.Box(
+    #     x=start_x,
+    #     y=(window.height / 2) - (total_height / 2),
+    #     width=total_width,
+    #     height=total_height,
+    #     color=user_theme,
+    #     batch=batch,
+    # )
 
-    # Create row of rectangles
-    for i in range(n_rectangles):
-        x = start_x + i * (rectangle_width + gap)
-        y = window.height / 2
-        rect = shapes.Rectangle(
-            x=x,
-            y=y,
-            width=rectangle_width,
-            height=rectangle_width,
-            color=user_theme,
-            batch=batch,
-        )
-        rect.original_x = x
-        rectangles.append(rect)
+    # # Create row of rectangles
+    # for i in range(n_rectangles):
+    #     x = start_x + i * (rectangle_width + gap)
+    #     y = window.height / 2
+    #     rect = shapes.Rectangle(
+    #         x=x,
+    #         y=y,
+    #         width=rectangle_width,
+    #         height=rectangle_width,
+    #         color=user_theme,
+    #         batch=batch,
+    #     )
+    #     rect.original_x = x
+    #     rectangles.append(rect)
+
+    oscope = OScope(window, batch, user_theme)
+    oscope.create_border()
+    oscope.create_rectangles()
+
+    def update_wave(rectangles, speed, amplitude, freq, base_y):
+        """Update demo wave in lieu of real data."""
+        global total_time
+        for rect in rectangles:
+            angle = (rect.original_x * freq) + (total_time * speed)
+            rect.y = base_y + amplitude * sin(angle)
 
     def update(dt):
         global total_time
@@ -403,10 +436,12 @@ def main(user_config_file: str, copy_only: True):
         amplitude = 50.0
         freq = 0.04
         base_y = window.height / 2
-        for rect in rectangles:
-            angle = (rect.original_x * freq) + (total_time * speed)
-            rect.y = base_y + amplitude * sin(angle)
-            # offset += 0.10
+        # for rect in rectangles:
+        #     angle = (rect.original_x * freq) + (total_time * speed)
+        #     rect.y = base_y + amplitude * sin(angle)
+
+        update_wave(oscope.rectangles, speed, amplitude, freq, base_y)
+        # offset += 0.10
         # cursor.opacity += int(sin(value))
         # print(cursor.opacity)
 
@@ -421,10 +456,6 @@ def main(user_config_file: str, copy_only: True):
 
     pyglet.clock.schedule_interval(update, 1 / 60)
     pyglet.app.run()
-
-    with open(user_config_file, "r") as stream:
-        user = yaml.load(stream, Loader=yaml.Loader)
-    breakpoint()
 
     # SPLICE_ROOT = os.path.expanduser(Path(splice_root))
     # DEST_DIR = os.path.expanduser(Path(dest_dir))
