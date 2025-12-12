@@ -11,7 +11,8 @@ from pathlib import Path
 from math import sin, cos
 
 # from collections import Counter
-from splice_cooker.components import OScope
+from splice_cooker.components import ControlStrip, OScope
+from splice_cooker.icons import create_icons, load_icons
 from splice_cooker.utils import timeit
 from splice_cooker.user import User
 from splice_cooker.theme import theme
@@ -324,6 +325,11 @@ def get_sample_meta(splice_root: str, dest_dir: str, sample_list: list):
 @timeit
 def main(user_config_file: str, copy_only: True):
 
+    RESOURCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+    ICON_DIR = os.path.join(RESOURCE_DIR, "icons")
+    pyglet.resource.path = [RESOURCE_DIR, ICON_DIR]
+    pyglet.resource.reindex()
+
     with open(user_config_file, "r") as stream:
         user = yaml.load(stream, Loader=yaml.Loader)
 
@@ -349,6 +355,8 @@ def main(user_config_file: str, copy_only: True):
     # )
     user_theme = theme["pink"]
 
+    # icons = create_icons()
+    icons = load_icons(RESOURCE_DIR)
     border = shapes.Box(
         x=0,
         y=0,
@@ -417,8 +425,11 @@ def main(user_config_file: str, copy_only: True):
     #     rectangles.append(rect)
 
     oscope = OScope(window, batch, user_theme)
-    oscope.create_border()
-    oscope.create_rectangles()
+    ctrlstrip = ControlStrip(window, icons, batch, user_theme)
+
+    @ctrlstrip.buttons[0].event
+    def on_press():
+        print("Play pressed.")
 
     def update_wave(rectangles, speed, amplitude, freq, base_y):
         """Update demo wave in lieu of real data."""
