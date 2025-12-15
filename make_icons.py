@@ -9,7 +9,7 @@ from splice_cooker.icons import create_icons
 
 window = pyglet.window.Window(width=100, height=100, visible=False)
 
-icon_dir = Path("/Users/teen/Projects/SpliceCooker/resources/buttons")
+icon_dir = Path("/Users/teen/Projects/SpliceCooker/resources/icons")
 icons = create_icons(window)
 
 button_list = ["rewind", "play", "pause", "stop", "ff"]

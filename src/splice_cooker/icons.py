@@ -93,12 +93,6 @@ def find_rectangle_center(p, w, h):
 def draw_rewind_icon(color) -> None:
     # Two triangles pointing left
     # (0,0) is bottom-left of the BUTTON, not the screen
-
-    # # x1,y1,x2,y2,x3,y3
-    # p1 = (10.0, 10.0)
-    # p2 = (10.0, 40.0)
-    # p3 = (40.0, 25.0)
-
     n_triangles = 2
     x_offset = 15.0
 
@@ -129,10 +123,8 @@ def draw_rewind_icon(color) -> None:
             p3.y,
             color=color,
         )
-        # tri.anchor_position = find_triangle_center(p1, p2, p3)
-        # tri.rotation = 180
-        # tri.position = (10.0 + (i * 30), 10.0)
         tri.draw()
+    shapes.Box(0, 0, 60, 60, thickness=2.0, color=color).draw()
 
 
 def draw_play_icon(color) -> None:
@@ -142,6 +134,7 @@ def draw_play_icon(color) -> None:
     p2 = Vec2(15.0, 50.0)
     p3 = Vec2(45.0, 30.0)
     shapes.Triangle(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, color=color).draw()
+    shapes.Box(0, 0, 60, 60, thickness=2.0, color=color).draw()
 
 
 def draw_pause_icon(color) -> None:
@@ -161,11 +154,13 @@ def draw_pause_icon(color) -> None:
     # rect2.position = (40.0, 10.0)
     rect1.draw()
     rect2.draw()
+    shapes.Box(0, 0, 60, 60, thickness=2.0, color=color).draw()
 
 
 def draw_stop_icon(color) -> None:
     # One solid square
     shapes.Rectangle(10, 10, 40, 40, color=color).draw()
+    shapes.Box(0, 0, 60, 60, thickness=2.0, color=color).draw()
 
 
 def draw_ff_icon(color) -> None:
@@ -206,6 +201,8 @@ def draw_ff_icon(color) -> None:
         # tri.rotation = 180
         # tri.position = (10.0 + (i * 30), 10.0)
         tri.draw()
+
+    shapes.Box(0, 0, 60, 60, thickness=2.0, color=color).draw()
 
 
 def create_icons(window):
@@ -286,8 +283,8 @@ def load_icons(resource_dir):
 
     icons = {
         "rewind": (rewind_img, rewind_pressed_img),
-        "play": (play_img, play_pressed_img),
-        "pause": (pause_img, pause_pressed_img),
+        "play": (play_img, pause_pressed_img),
+        # "pause": (pause_img, pause_pressed_img),
         "stop": (stop_img, stop_pressed_img),
         "ff": (ff_img, ff_pressed_img),
     }

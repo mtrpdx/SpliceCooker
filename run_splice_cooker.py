@@ -1,3 +1,5 @@
+import librosa
+import numpy as np
 import pyglet
 from pyglet import shapes
 from tqdm.auto import tqdm
@@ -9,8 +11,11 @@ import os
 import re
 from pathlib import Path
 from math import sin, cos
+import wave
+import struct
 
 # from collections import Counter
+from splice_cooker.app_context import AppContext
 from splice_cooker.components import ControlStrip, OScope
 from splice_cooker.icons import create_icons, load_icons
 from splice_cooker.utils import timeit
@@ -325,47 +330,23 @@ def get_sample_meta(splice_root: str, dest_dir: str, sample_list: list):
 @timeit
 def main(user_config_file: str, copy_only: True):
 
-    RESOURCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
-    ICON_DIR = os.path.join(RESOURCE_DIR, "icons")
-    pyglet.resource.path = [RESOURCE_DIR, ICON_DIR]
-    pyglet.resource.reindex()
+    # RESOURCE_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
+    # ICON_DIR = os.path.join(RESOURCE_DIR, "icons")
+    # AUDIO_DIR = os.path.join(RESOURCE_DIR, "audio")
+    # pyglet.resource.path = [RESOURCE_DIR, ICON_DIR, AUDIO_DIR]
+    # pyglet.resource.reindex()
 
-    with open(user_config_file, "r") as stream:
-        user = yaml.load(stream, Loader=yaml.Loader)
+    ctx = AppContext(user_config_file, debug=False)
+    ctx.load_audio()
+    ctx.init_audio_player()
+    ctx.init_framebuffer()
+    ctx.load_ui()
 
     # breakpoint()
-
-    window = pyglet.window.Window(caption="SpliceCooker")
 
     # oscope = OScope(window)
 
-    # breakpoint()
-
-    batch = pyglet.graphics.Batch()
-
-    # label = pyglet.text.Label(
-    #     "Hello, _",
-    #     font_name="Times New Roman",
-    #     font_size=36,
-    #     x=window.width // 2,
-    #     y=window.height // 2,
-    #     anchor_x="center",
-    #     anchor_y="center",
-    #     batch=batch,
-    # )
-    user_theme = theme["pink"]
-
-    # icons = create_icons()
-    icons = load_icons(RESOURCE_DIR)
-    border = shapes.Box(
-        x=0,
-        y=0,
-        width=window.width,
-        height=window.height,
-        thickness=24.0,
-        color=user_theme,
-        batch=batch,
-    )
+    # Setup audio player
 
     # open_dialog = FileOpenDialog(
     #     # initial_dir=user.config["splice_root"],
@@ -424,21 +405,68 @@ def main(user_config_file: str, copy_only: True):
     #     rect.original_x = x
     #     rectangles.append(rect)
 
-    oscope = OScope(window, batch, user_theme)
-    ctrlstrip = ControlStrip(window, icons, batch, user_theme)
+    oscope = OScope(ctx.main_window, ctx.batch, ctx.user_theme)
+    ctrlstrip = ControlStrip(
+        ctx.main_window, ctx.player, ctx.icons, ctx.batch, ctx.user_theme
+    )
+    rewind = ctrlstrip.buttons[0]
+    play = ctrlstrip.buttons[1]
+    # pause = ctrlstrip.buttons[2]
+    stop = ctrlstrip.buttons[2]
+    ff = ctrlstrip.buttons[3]
 
-    @ctrlstrip.buttons[0].event
-    def on_press():
-        print("Play pressed.")
+    # @rewind.event
+    # def my_on_press_handler():
+    #     print("Rewind pressed.", flush=True)
 
-    def update_wave(rectangles, speed, amplitude, freq, base_y):
+    # @rewind.event
+    # def my_on_release_handler():
+    #     print("Rewind released.", flush=True)
+
+    # rewind.set_handler("on_press", my_on_press_handler)
+    # rewind.set_handler("on_release", my_on_release_handler)
+
+    ctx.main_window.push_handlers(rewind)
+    ctx.main_window.push_handlers(play)
+    # window.push_handlers(pause)
+    ctx.main_window.push_handlers(stop)
+    ctx.main_window.push_handlers(ff)
+
+    def rewind_button_on_press_handler():
+        pass
+
+    def play_button_handler(widget, value):
+        # print(f"{widget}: {value}")
+        if ctx.player.playing:
+            ctx.player.pause()
+        else:
+            ctx.player.play()
+
+    def pause_button_handler():
+        pass
+
+    def stop_button_handler(widget, value):
+        # print(f"{widget}: {value}")
+        if ctx.player.playing:
+            ctx.player.pause()
+
+    def ff_button_handler():
+        pass
+
+    play.set_handler("on_toggle", play_button_handler)
+    stop.set_handler("on_toggle", stop_button_handler)
+
+    def calculate_wave_demo(rectangles, speed, amplitude, freq, base_y):
         """Update demo wave in lieu of real data."""
         global total_time
-        for rect in rectangles:
+        for i, rect in enumerate(rectangles):
             angle = (rect.original_x * freq) + (total_time * speed)
+            # angle = (rect.original_x * freq) + (pyglet.clock.tick() * 0.2)
             rect.y = base_y + amplitude * sin(angle)
+            rect.opacity = int(200 + 55 * sin(total_time * 2 * i))
 
-    def update(dt):
+    def update_wave_demo(dt):
+        # use these settings for wave demo
         global total_time
         total_time += dt
 
@@ -451,19 +479,67 @@ def main(user_config_file: str, copy_only: True):
         #     angle = (rect.original_x * freq) + (total_time * speed)
         #     rect.y = base_y + amplitude * sin(angle)
 
-        update_wave(oscope.rectangles, speed, amplitude, freq, base_y)
-        # offset += 0.10
-        # cursor.opacity += int(sin(value))
-        # print(cursor.opacity)
+        update_wave_demo(oscope.rectangles, speed, amplitude, freq, base_y)
+        offset += 0.10
+        cursor.opacity += int(sin(value))
+        print(cursor.opacity)
 
-    @window.event
+    def calculate_rect_height(rectangles, current_values, spread):
+        for i, rect in enumerate(rectangles):
+            n_rectangles = len(rectangles)
+            # Determine which sample this specific bar represents
+            # We center the visualization so the middle bar is "now"
+            # sample_offset = (i - n_rectangles // 2) * spread
+            # sample_index = center_index + sample_offset
+
+            amplitude = current_values[i]
+
+            scaled_height = abs(amplitude) * 300
+
+            rect.height = max(scaled_height, 2)  # Ensure at least 2px tall
+            # Apply to rectangle
+            rect.y = 720 - (scaled_height / 2)  # Center vertically
+
+            # Dithering effect: Map volume to opacity
+            # Louder = more solid
+            rect.opacity = int(100 + (abs(amplitude) * 155))
+
+    def update(dt):
+        if ctx.audio_samples is None:
+            return
+
+        current_time = ctx.player.time
+        # convert seconds to samples
+        center_index = int(current_time * ctx.sample_rate)
+
+        spread = 20
+        offsets = (np.arange(oscope.n_rectangles) - oscope.n_rectangles // 2) * spread
+        indices = center_index + offsets
+
+        # Stay within bounds
+        indices = np.clip(indices, 0, len(ctx.audio_samples) - 1)
+
+        current_values = ctx.audio_samples[indices]
+        #
+        #
+        # if center_index >= len(audio_samples):
+        #     return
+        calculate_rect_height(oscope.rectangles, current_values, spread)
+
+    # TODO: flesh out this section
+
+    @ctx.main_window.event
     def on_key_press(symbol, modifiers):
         print("A key was pressed")
 
-    @window.event
+    @ctx.main_window.event
     def on_draw():
-        window.clear()
-        batch.draw()
+        ctx.fbo.bind()
+        ctx.main_window.clear()
+        ctx.batch.draw()
+        ctx.fbo.unbind()
+        ctx.main_window.clear()
+        ctx.screen_sprite.draw()
 
     pyglet.clock.schedule_interval(update, 1 / 60)
     pyglet.app.run()

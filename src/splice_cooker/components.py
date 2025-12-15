@@ -16,6 +16,7 @@ ControlStrip : Control strip for audio transport
 from pyglet import shapes
 from pyglet.graphics import Batch
 from pyglet.gui import WidgetBase, PushButton, ToggleButton
+from pyglet.media import Player
 from pyglet.resource import image
 from pyglet.text import Label
 from pyglet.window import Window
@@ -36,7 +37,14 @@ from math import sin, cos
 class ControlStrip(WidgetBase):
     """Control strip class that inherits from WidgetBase."""
 
-    def __init__(self, window: Window, icons: Dict, batch: Batch, user_theme: Tuple):
+    def __init__(
+        self,
+        window: Window,
+        player: Player,
+        icons: Dict,
+        batch: Batch,
+        user_theme: Tuple,
+    ):
         """
         Initialize ControlStrip widget.
 
@@ -44,17 +52,18 @@ class ControlStrip(WidgetBase):
         assigns x, y, width, and height, but calculate them according to
         our params beforehand.
         """
-        self.button_width = 50
-        self.button_height = 50
+        self.button_width = 60
+        self.button_height = 60
         self.icons = icons
-        self.button_list = ["rewind", "play", "pause", "stop", "ff"]
+        self.button_list = ["rewind", "play", "stop", "ff"]
         self.n_buttons = len(self.button_list)
-        self.gap = self.button_width * 2
+        self.gap = self.button_width * 1.25
         width = (self.n_buttons * self.button_width) + ((self.n_buttons - 1) * self.gap)
         height = self.button_height
         x = (window.width - width) / 2  # left edge of border
-        y = (window.height / 2) - (height / 2) - 240
-
+        y = (window.height / 2) - (height / 2) - 210
+        self.window = window
+        self.player = player
         self.user_theme = user_theme
         self.batch = batch
 
@@ -89,6 +98,19 @@ class ControlStrip(WidgetBase):
                 unpressed=self.icons[self.button_list[i]][0],
                 batch=self.batch,
             )
+            # breakpoint()
+            # match b:
+            #     case "rewind":
+            #         pb.set_handler("on_toggle", rewind_button_handler)
+            #     case "play":
+            #         pb.set_handler("on_toggle", play_button_handler)
+            #     case "pause":
+            #         pb.set_handler("on_toggle", pause_button_handler)
+            #     case "stop":
+            #         pb.set_handler("on_toggle", stop_button_handler)
+            #     case "ff":
+            #         pb.set_handler("on_toggle", ff_button_handler)
+
             self.buttons.append(pb)
 
 
@@ -106,8 +128,10 @@ class OScope(WidgetBase):
         self.aspect_x = 4
         self.aspect_y = 3
         # self.rectangles = []
-        self.n_rectangles = 100  # this determines x pixel count and screen size
-        self.rectangle_width = 2
+        self.rectangle_width = 8
+        self.n_rectangles = int(
+            (2 * 100) / self.rectangle_width
+        )  # this determines x pixel count and screen size
         self.gap = self.rectangle_width
         width = (self.n_rectangles * self.rectangle_width) + (
             (self.n_rectangles - 1) * self.gap
@@ -149,5 +173,6 @@ class OScope(WidgetBase):
                 color=self.user_theme,
                 batch=self.batch,
             )
+            rect.opacity = 200
             rect.original_x = x
             self.rectangles.append(rect)
