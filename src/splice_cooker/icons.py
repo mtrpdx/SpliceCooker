@@ -12,7 +12,7 @@ from pyglet import shapes, gui
 import ctypes
 import os
 
-from splice_cooker.theme import theme
+from splice_cooker.theme import theme, theme_green
 
 
 def shift_left(point, index, x_offset):
@@ -207,8 +207,8 @@ def draw_ff_icon(color) -> None:
 
 def create_icons(window):
     # We need two states for every button: Normal (unpressed) and Pressed (darker)
-    color_normal = theme["pink"]
-    color_pressed = (100, 100, 100)  # Darker grey when clicked
+    color_normal = theme_green["fg"]
+    color_pressed = theme_green["fg-alt"]  # Darker grey when clicked
 
     # -- REWIND BUTTON IMAGES --
     rewind_img = create_shape_texture(

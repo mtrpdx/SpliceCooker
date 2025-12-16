@@ -2,6 +2,7 @@ import librosa
 import numpy as np
 import pyglet
 from pyglet import shapes
+from pyglet.gl import glClearColor
 from tqdm.auto import tqdm
 import yaml
 
@@ -535,6 +536,7 @@ def main(user_config_file: str, copy_only: True):
     @ctx.main_window.event
     def on_draw():
         ctx.fbo.bind()
+        glClearColor(196.0 / 255, 201.0 / 255, 193.0 / 255, 1.0)
         ctx.main_window.clear()
         ctx.batch.draw()
         ctx.fbo.unbind()

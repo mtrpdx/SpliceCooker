@@ -43,7 +43,7 @@ class ControlStrip(WidgetBase):
         player: Player,
         icons: Dict,
         batch: Batch,
-        user_theme: Tuple,
+        user_theme: Dict,
     ):
         """
         Initialize ControlStrip widget.
@@ -78,7 +78,7 @@ class ControlStrip(WidgetBase):
             y=self._y - 10,
             width=self._width + 10,
             height=self._height + 10,
-            color=self.user_theme,
+            color=self.user_theme["fg"],
             batch=self.batch,
         )
         self.border = ctrlstrip_border
@@ -154,7 +154,7 @@ class OScope(WidgetBase):
             y=self._y,
             width=self._width,
             height=self._height,
-            color=self.user_theme,
+            color=self.user_theme["fg"],
             batch=self.batch,
         )
         self.border = oscope_border
@@ -170,7 +170,7 @@ class OScope(WidgetBase):
                 y=y,
                 width=self.rectangle_width,
                 height=self.rectangle_width,
-                color=self.user_theme,
+                color=self.user_theme["fg"],
                 batch=self.batch,
             )
             rect.opacity = 200

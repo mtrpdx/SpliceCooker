@@ -14,7 +14,7 @@ import os
 import yaml
 
 from splice_cooker.icons import create_icons, load_icons
-from splice_cooker.theme import theme
+from splice_cooker.theme import theme, theme_green
 from splice_cooker.user import User
 from splice_cooker.shader import vertex_source, fragment_source
 
@@ -123,7 +123,7 @@ class AppContext:
         #     anchor_y="center",
         #     batch=batch,
         # )
-        self.user_theme = theme["pink"]
+        self.user_theme = theme_green
 
         # icons = create_icons()
         self.icons = load_icons(self.resource_dir)
@@ -133,6 +133,6 @@ class AppContext:
             width=self.main_window.width,
             height=self.main_window.height,
             thickness=24.0,
-            color=self.user_theme,
+            color=self.user_theme["fg"],
             batch=self.batch,
         )
